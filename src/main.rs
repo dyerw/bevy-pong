@@ -4,7 +4,9 @@ mod components;
 mod constants;
 mod events;
 mod physics;
+mod resources;
 mod sound;
+mod spawn;
 
 fn main() {
     App::build()
@@ -16,16 +18,15 @@ fn main() {
             height: constants::SCREEN_HEIGHT,
             ..Default::default()
         })
-        .insert_resource(Score::default())
+        .insert_resource(resources::Score::default())
         // Plugins
         .add_plugins(DefaultPlugins)
+        .add_plugin(spawn::PongSpawnPlugin)
         .add_plugin(physics::PongPhysicsPlugin)
         .add_plugin(events::PongEventsPlugin)
         // Systems
         .add_startup_system(setup.system())
         .add_startup_system(sound::load_sounds.system())
-        .add_startup_system_to_stage(StartupStage::PostStartup, spawn_paddles.system())
-        .add_startup_system_to_stage(StartupStage::PostStartup, spawn_ball.system())
         .add_system(paddle_movement.system())
         .add_system(collision_detection.system())
         .add_system(collision_debugger.system())
@@ -47,7 +48,7 @@ fn setup(
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
     // Material
-    commands.insert_resource(Materials {
+    commands.insert_resource(resources::Materials {
         white_material: materials.add(Color::WHITE.into()),
     });
 
@@ -88,54 +89,6 @@ fn setup(
             ..Default::default()
         })
         .insert(components::ScoreText);
-}
-
-fn spawn_ball(mut commands: Commands, materials: Res<Materials>) {
-    commands
-        .spawn_bundle(SpriteBundle {
-            material: materials.white_material.clone(),
-            sprite: Sprite::new(Vec2::new(constants::BALL_SIZE, constants::BALL_SIZE)),
-            ..Default::default()
-        })
-        .insert(components::Velocity(Vec2::new(
-            constants::BALL_X_VELOCITY,
-            0.,
-        )))
-        .insert(components::Collider(Vec2::new(
-            constants::BALL_SIZE,
-            constants::BALL_SIZE,
-        )))
-        .insert(components::Ball);
-}
-
-fn spawn_paddles(mut commands: Commands, materials: Res<Materials>) {
-    commands
-        .spawn_bundle(SpriteBundle {
-            material: materials.white_material.clone(),
-            sprite: Sprite::new(Vec2::new(constants::PADDLE_WIDTH, constants::PADDLE_HEIGHT)),
-            transform: Transform::from_xyz(-1. * (constants::SCREEN_WIDTH / 2.) + 20., 0., 0.),
-            ..Default::default()
-        })
-        .insert(components::Paddle)
-        .insert(components::Collider(Vec2::new(
-            constants::PADDLE_WIDTH,
-            constants::PADDLE_HEIGHT,
-        )))
-        .insert(components::LeftPlayer);
-
-    commands
-        .spawn_bundle(SpriteBundle {
-            material: materials.white_material.clone(),
-            sprite: Sprite::new(Vec2::new(constants::PADDLE_WIDTH, constants::PADDLE_HEIGHT)),
-            transform: Transform::from_xyz(constants::SCREEN_WIDTH / 2. - 20., 0., 0.),
-            ..Default::default()
-        })
-        .insert(components::Paddle)
-        .insert(components::Collider(Vec2::new(
-            constants::PADDLE_WIDTH,
-            constants::PADDLE_HEIGHT,
-        )))
-        .insert(components::RightPlayer);
 }
 
 fn paddle_movement(
@@ -219,7 +172,7 @@ fn ball_reset(
 fn score_system(
     mut score_reader: EventReader<events::ScoreEvent>,
     mut text_query: Query<&mut Text, With<components::ScoreText>>,
-    mut score_resource: ResMut<Score>,
+    mut score_resource: ResMut<resources::Score>,
 ) {
     for event in score_reader.iter() {
         if let Ok(mut text) = text_query.single_mut() {
@@ -235,16 +188,4 @@ fn score_system(
             }
         }
     }
-}
-
-// Resources
-
-#[derive(Default)]
-struct Score {
-    left_player: i32,
-    right_player: i32,
-}
-
-struct Materials {
-    white_material: Handle<ColorMaterial>,
 }
