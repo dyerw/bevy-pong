@@ -2,10 +2,20 @@ use bevy::prelude::*;
 
 use crate::events::*;
 
-pub struct PingSound(pub Handle<AudioSource>);
-pub struct WallBounceSound(pub Handle<AudioSource>);
+pub struct PongSoundPlugin;
 
-pub fn load_sounds(mut commands: Commands, server: Res<AssetServer>) {
+impl Plugin for PongSoundPlugin {
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_startup_system(load_sounds_system.system())
+            .add_system(ping_sound_system.system())
+            .add_system(wallbounce_sound_system.system());
+    }
+}
+
+struct PingSound(pub Handle<AudioSource>);
+struct WallBounceSound(pub Handle<AudioSource>);
+
+fn load_sounds_system(mut commands: Commands, server: Res<AssetServer>) {
     let ping_handle = server.load("sounds/ping.mp3");
     commands.insert_resource(PingSound(ping_handle));
 
@@ -13,7 +23,7 @@ pub fn load_sounds(mut commands: Commands, server: Res<AssetServer>) {
     commands.insert_resource(WallBounceSound(wallbounce_handle));
 }
 
-pub fn ping_sound_system(
+fn ping_sound_system(
     mut collision_reader: EventReader<CollisionEvent>,
     ping_res: Res<PingSound>,
     audio: Res<Audio>,
@@ -23,7 +33,7 @@ pub fn ping_sound_system(
     }
 }
 
-pub fn wallbounce_sound_system(
+fn wallbounce_sound_system(
     mut bounce_reader: EventReader<WallBounceEvent>,
     wallbounce_res: Res<WallBounceSound>,
     audio: Res<Audio>,

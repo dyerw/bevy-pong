@@ -1,5 +1,6 @@
-use bevy::{prelude::*, sprite::collide_aabb::collide};
+use bevy::prelude::*;
 
+mod collision;
 mod components;
 mod constants;
 mod events;
@@ -10,48 +11,28 @@ mod spawn;
 
 fn main() {
     App::build()
-        // Resources
-        .insert_resource(ClearColor(Color::rgb(0.04, 0.04, 0.04)))
-        .insert_resource(WindowDescriptor {
-            title: "Pong".to_string(),
-            width: constants::SCREEN_WIDTH,
-            height: constants::SCREEN_HEIGHT,
-            ..Default::default()
-        })
-        .insert_resource(resources::Score::default())
-        // Plugins
+        .add_plugin(resources::PongResourcesPlugin)
         .add_plugins(DefaultPlugins)
         .add_plugin(spawn::PongSpawnPlugin)
         .add_plugin(physics::PongPhysicsPlugin)
         .add_plugin(events::PongEventsPlugin)
+        .add_plugin(collision::PongCollisionPlugin)
+        .add_plugin(sound::PongSoundPlugin)
         // Systems
         .add_startup_system(setup.system())
-        .add_startup_system(sound::load_sounds.system())
         .add_system(paddle_movement.system())
-        .add_system(collision_detection.system())
         .add_system(collision_debugger.system())
         .add_system(ball_reset.system())
         .add_system(score_system.system())
-        .add_system(sound::ping_sound_system.system())
-        .add_system(sound::wallbounce_sound_system.system())
         .run();
 }
 
 // Systems
 
-fn setup(
-    mut commands: Commands,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    asset_server: Res<AssetServer>,
-) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Camera
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
-    // Material
-    commands.insert_resource(resources::Materials {
-        white_material: materials.add(Color::WHITE.into()),
-    });
-
     // Text
     commands
         .spawn_bundle(TextBundle {
@@ -118,31 +99,6 @@ fn paddle_movement(
             direction = -1.0;
         }
         transform.translation.y += time.delta_seconds() * direction * constants::PADDLE_SPEED;
-    }
-}
-
-fn collision_detection(
-    mut collision_writer: EventWriter<events::CollisionEvent>,
-    q: Query<(Entity, &Transform, &components::Collider)>,
-) {
-    let mut sent_collisions: Vec<events::CollisionEvent> = vec![];
-    for (entity, transform, collider) in q.iter() {
-        let others = q.iter().filter(|(_e, t, _c)| *t != transform);
-        for (other_entity, other_transform, other_collider) in others {
-            let collision = collide(
-                transform.translation,
-                collider.0,
-                other_transform.translation,
-                other_collider.0,
-            );
-            if let Some(_collision) = collision {
-                let collision_event = events::CollisionEvent(entity, other_entity);
-                if !sent_collisions.contains(&collision_event) {
-                    sent_collisions.push(collision_event);
-                    collision_writer.send(collision_event);
-                }
-            }
-        }
     }
 }
 
