@@ -5,7 +5,7 @@ use crate::events::*;
 pub struct PingSound(pub Handle<AudioSource>);
 pub struct WallBounceSound(pub Handle<AudioSource>);
 
-pub fn load_sounds(mut commands: Commands, server: Res<AssetServer>, audio: Res<Audio>) {
+pub fn load_sounds(mut commands: Commands, server: Res<AssetServer>) {
     let ping_handle = server.load("sounds/ping.mp3");
     commands.insert_resource(PingSound(ping_handle));
 
