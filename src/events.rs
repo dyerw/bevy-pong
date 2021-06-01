@@ -1,5 +1,15 @@
 use bevy::prelude::*;
 
+pub struct PongEventsPlugin;
+
+impl Plugin for PongEventsPlugin {
+    fn build(&self, app: &mut AppBuilder) {
+        app.add_event::<CollisionEvent>()
+            .add_event::<ScoreEvent>()
+            .add_event::<WallBounceEvent>();
+    }
+}
+
 #[derive(Clone, Copy)]
 pub struct CollisionEvent(pub Entity, pub Entity);
 

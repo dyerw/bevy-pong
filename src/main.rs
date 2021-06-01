@@ -20,10 +20,7 @@ fn main() {
         // Plugins
         .add_plugins(DefaultPlugins)
         .add_plugin(physics::PongPhysicsPlugin)
-        // Events
-        .add_event::<events::CollisionEvent>()
-        .add_event::<events::ScoreEvent>()
-        .add_event::<events::WallBounceEvent>()
+        .add_plugin(events::PongEventsPlugin)
         // Systems
         .add_startup_system(setup.system())
         .add_startup_system(sound::load_sounds.system())
@@ -38,8 +35,6 @@ fn main() {
         .add_system(sound::wallbounce_sound_system.system())
         .run();
 }
-
-// Components
 
 // Systems
 
