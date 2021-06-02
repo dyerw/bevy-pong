@@ -32,11 +32,16 @@ fn score_detection_system(
 
 fn ball_reset_system(
     mut score_reader: EventReader<ScoreEvent>,
-    mut ball_query: Query<&mut Transform, With<Ball>>,
+    mut ball_query: Query<(&mut Transform, &mut Velocity), With<Ball>>,
 ) {
-    for _event in score_reader.iter() {
-        if let Ok(mut transform) = ball_query.single_mut() {
-            transform.translation.x = 0.;
+    for event in score_reader.iter() {
+        if let Ok((mut transform, mut velocity)) = ball_query.single_mut() {
+            transform.translation = Vec3::splat(0.);
+            velocity.0.y = 0.;
+            match event.0 {
+                Player::Left => velocity.0.x = -1. * BALL_X_VELOCITY,
+                Player::Right => velocity.0.x = BALL_X_VELOCITY,
+            }
         }
     }
 }
