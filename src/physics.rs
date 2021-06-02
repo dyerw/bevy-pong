@@ -17,12 +17,7 @@ impl Plugin for PongPhysicsPlugin {
 fn calculate_hit_position(ball_y: f32, paddle_y: f32) -> f32 {
     let transformed_ball_y = ball_y + SCREEN_HEIGHT / 2.;
     let transformed_paddle_y = paddle_y + SCREEN_HEIGHT / 2.;
-    let result: f32 = (transformed_ball_y - transformed_paddle_y) / (PADDLE_HEIGHT / 2.);
-    println!(
-        "ball_y: {} paddle_y: {} result: {}",
-        transformed_ball_y, transformed_paddle_y, result
-    );
-    return result;
+    return (transformed_ball_y - transformed_paddle_y) / (PADDLE_HEIGHT / 2.);
 }
 
 fn ball_bounce_system(
@@ -69,14 +64,23 @@ fn ball_bounce_system(
 
 fn ball_wall_bounce_system(
     mut bounce_writer: EventWriter<WallBounceEvent>,
-    mut ball_query: Query<(&Transform, &mut Velocity), With<Ball>>,
+    mut ball_query: Query<(&mut Transform, &mut Velocity), With<Ball>>,
 ) {
-    if let Ok((transform, mut velocity)) = ball_query.single_mut() {
-        if transform.translation.y >= SCREEN_HEIGHT / 2.
-            || transform.translation.y <= (-1. * SCREEN_HEIGHT / 2.)
-        {
+    if let Ok((mut transform, mut velocity)) = ball_query.single_mut() {
+        let hit_top_wall = (transform.translation.y + 0.5 * BALL_SIZE) >= SCREEN_HEIGHT / 2.;
+        let hit_bottom_wall =
+            (transform.translation.y - 0.5 * BALL_SIZE) <= (-1. * SCREEN_HEIGHT / 2.);
+        if hit_top_wall || hit_bottom_wall {
             bounce_writer.send(WallBounceEvent);
             velocity.0.y = -1. * velocity.0.y;
+            // Stop ball from getting stuck if it's velocity isn't enough to move it out of
+            // the wall in the next frame
+            if hit_bottom_wall {
+                transform.translation.y += 0.5 * BALL_SIZE
+            }
+            if hit_top_wall {
+                transform.translation.y -= 0.5 * BALL_SIZE
+            }
         };
     }
 }
